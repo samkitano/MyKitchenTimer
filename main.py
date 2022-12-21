@@ -8,7 +8,6 @@ import time
 # oled resolution
 oled_x  = 128                                # SSD1306 horizontal resolution
 oled_y  = 64                                 # SSD1306 vertical resolution
-#adc_2   = machine.ADC(2)                     # ADC channel 2 for input
 
 display.init_i2c(1, 0, oled_x, oled_y)       # initialize oled
 display.detectFonts()                        # detect available fonts
@@ -64,7 +63,7 @@ def seconds_down():
     global current_time
 
     current_time -= 1
-    
+
     if current_time < 0:
         current_time = 1
 
@@ -75,17 +74,18 @@ def minutes_up():
     global current_time
 
     current_time = current_time + 60
-    
+
     if current_time == MAX_TIME:
         current_time = MAX_TIME
 
 
 def minutes_down():
     """Decrement minutes"""
+
     global current_time
 
     current_time = current_time - 60
-    
+
     if current_time < 0:
         current_time = 1
 
@@ -105,43 +105,43 @@ def rotary_changed(change):
     if change == Rotary.ROT_CW:
         if mode == SET_MINUTES:
             minutes_up()
-        
+
         elif mode == SET_SECONDS:
             seconds_up()
-    
+
     elif change == Rotary.ROT_CCW:
         if mode == SET_MINUTES:
             minutes_down()
-        
+
         elif mode == SET_SECONDS:
             seconds_down()
-    
+
     elif change == Rotary.SHORT_PRESS:
         if state == TIMER_RUNNING:
             state = TIMER_PAUSED
-        
+
         elif state == TIMER_PAUSED:
             if mode == SET_MINUTES or mode == SET_SECONDS:
                 mode = RUN_MODE
                 screen.unset_all()
             state = TIMER_RUNNING
-        
+
         elif state == TIMER_FINISHED:
             current_time = default_start_time
             state = TIMER_PAUSED
-    
+
     elif change == Rotary.LONG_PRESS:
         if state == TIMER_RUNNING:
             return
-        
+
         if mode == SET_MINUTES:
             mode = SET_SECONDS
             screen.set_seconds()
-        
+
         elif mode == SET_SECONDS:
             mode = RUN_MODE
             screen.unset_all()
-        
+
         else:
             mode = SET_MINUTES
             screen. set_minutes()
@@ -151,6 +151,8 @@ rotary.add_handler(rotary_changed)           # Register ISR
 
 
 if __name__ == '__main__':
+    """Main loop"""
+
     while True:
         if state == TIMER_RUNNING:
             current_time = current_time - 1
