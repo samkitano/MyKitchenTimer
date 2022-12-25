@@ -141,13 +141,13 @@ def clear_yellow():
 
 def set_minutes():
     clear_yellow()
-    ssd.fill_rect(14, set_y, 48, 8, 1)
+    ssd.fill_rect(14, set_y, 48, 4, 1)
     ssd.show()
 
 
 def set_seconds():
     clear_yellow()
-    ssd.fill_rect(74, set_y, 48, 8, 1)
+    ssd.fill_rect(74, set_y, 48, 4, 1)
     ssd.show()
 
 
