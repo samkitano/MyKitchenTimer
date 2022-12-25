@@ -58,9 +58,13 @@ Battery| PICO
 --------------
 Timer is set to 8 minutes by default. My kind of pasta. Don't judge!
 
-To change the default time, edit line 37 in file `main.py` to a desired value:
+To change the default time, edit line 37 in file `main.py` to a desired value in minutes or seconds x 60. Suppose you want 60 seconds:
+
 ```python
-default_start_time = DESIRED MINUTES HERE * 60
+# in minutes
+default_start_time = 1 * 60
+#in seconds
+default_start_time = 60
 ```
 
 ### Start/Pause
@@ -85,5 +89,12 @@ Short press Rotary to stop the noise.
 **For educational purposes only**: *do not leave the device hidden somewhere at random friend's/mother-in-law's place.* Not cool. For that purpose one should implement a PIR sensor. You know... to temporarily shut the thing up if they get too close?
 
 
-## LICENSE
-[MIT license](https://opensource.org/licenses/MIT)
+## LICENSES
+This software is licensed under the [MIT license](https://opensource.org/licenses/MIT)
+
+The included font (7 Segment Display Font) is NOT licensed for commercial use. For that purpose you should [GET A LICENSE](https://creativemarket.com/KraftiLab/2702060-7-Segment-Display-Font?utm_source=Link&utm_medium=CM+Social+Share&utm_campaign=Product+Social+Share&utm_content=7+Segment+Display+Font+~+Display+Fonts+~+Creative+Market&ts=201806)
+
+## DISCLAIMER
+Although thoroughly tested, this software and hardware installation guides are provided in good faith and to the best of both my habilities and knowledge. Under no circumstances am I responsible for any damages, malfunctions or injuries in a replication attempt. Do it at your own risk.
+
+Always read the documentation pertaining to electronic hardware. RTFM!
