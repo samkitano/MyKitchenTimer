@@ -30,6 +30,7 @@ class BUZZER():
 
         self.buzz = PWM(Pin(buzzer_pin))
 
+
     def shortBeep(self):
         """Sound a short beep"""
 
@@ -38,12 +39,14 @@ class BUZZER():
         sleep_ms(200)
         self.buzz.duty_u16(0)
 
+
     def doubleBeep(self):
         """Sound a double beep"""
 
         self.shortBeep()
         sleep_ms(15)
         self.shortBeep()
+
 
     def errorBeep(self):
         """Sound an error beep"""
@@ -52,6 +55,7 @@ class BUZZER():
         self.buzz.duty_u16(BUZZER.duty_cycle)
         sleep_ms(700)
         self.buzz.duty_u16(0)
+
 
     def halfSecondBeep(self):
         """Sound a half second beep"""

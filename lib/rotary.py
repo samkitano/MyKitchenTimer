@@ -1,6 +1,5 @@
-import utime as time
-from machine import Pin
 import micropython
+from machine import Pin
 
 class Rotary:
     """
@@ -36,10 +35,6 @@ class Rotary:
     ROT_CCW     = 2
     SW_PRESS    = 4
     SW_RELEASE  = 8
-    SHORT_PRESS = 16
-    LONG_PRESS  = 32
-
-    start_press = 0
 
     def __init__(self, dt, clk, sw):
         """
@@ -114,8 +109,6 @@ class Rotary:
                 Pin.IRQ_HIGH_LEVEL
         """
 
-        global start_press
-
         if self.last_button_status == self.sw_pin.value():
             return
 
@@ -123,14 +116,8 @@ class Rotary:
 
         if self.sw_pin.value():
             micropython.schedule(self.call_handlers, Rotary.SW_RELEASE)
-
-            if time.ticks_diff(time.ticks_ms(), start_press) > 1000:
-                micropython.schedule(self.call_handlers, Rotary.LONG_PRESS)
-            else:
-                micropython.schedule(self.call_handlers, Rotary.SHORT_PRESS)
         else:
             micropython.schedule(self.call_handlers, Rotary.SW_PRESS)
-            start_press = time.ticks_ms()
 
 
     def add_handler(self, handler):
@@ -151,7 +138,7 @@ class Rotary:
         Parameters
         ----------
         type : int
-            the current state
+            the handler index
         """
 
         for handler in self.handlers:

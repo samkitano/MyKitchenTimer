@@ -1,49 +1,149 @@
-from machine import Pin, ADC
 from rotary import Rotary
 from buzzer import BUZZER
-from screen import Screen
-import ssd1306py as display
-import time
+import utime as time
 
-# oled resolution
-oled_x  = 128                                # SSD1306 horizontal resolution
-oled_y  = 64                                 # SSD1306 vertical resolution
+from oled.config import WIDTH, HEIGHT, setup_ssd
+from oled.writer import Writer
+from micropython import const
+from machine import Timer
 
-display.init_i2c(1, 0, oled_x, oled_y)       # initialize oled
-display.detectFonts()                        # detect available fonts
+import oled.seven_segment_48 as font_big
 
-rotary = Rotary(2, 3, 4)                     # initialize rotary encoder
-screen = Screen(display)                     # instantiate screen class
-buzzer = BUZZER(15)                          # initialize buzzer
+# init classes
+ssd     = setup_ssd()                        # Setup SSD [scl = 1, sda = 0, i2c = 0]
+rotary  = Rotary(2, 3, 4)                    # initialize rotary encoder
+buzzer  = BUZZER(15)                         # initialize buzzer
+tim     = Timer(-1)
 
+# constants (states)
+TIMER_RUNNING      = const(0)                # [state] timer is running
+TIMER_PAUSED       = const(1)                # [state] timer is paused
+TIMER_FINISHED     = const(2)                # [state] time has finished
+
+SET_MINUTES        = const(0)                # [mode] app is setting minutes
+SET_SECONDS        = const(1)                # [mode] app is setting seconds
+RUN_MODE           = const(2)                # [mode] app is doing the timing
+MAX_TIME           = const(5999)             # 99 * 60 + 59 maximum time allowed
+
+char_lens = { ':': 3, '0': 9, '1': 3, '2': 9, '3': 8, '4': 9, '5': 9, '6': 9, '7': 8, '8': 9, '9': 9 }
+
+# globals
+state              = TIMER_PAUSED            # initial state
+mode               = RUN_MODE                # initial mode
+default_start_time = 5#8 * 60                  # default is 8 minutes
+current_time       = default_start_time      # time in seconds
+
+write_blue   = Writer(ssd, font_big, False)  # init writer for small font
+old_time     = 0
+r_switching  = False
+timer_y      = 16
+set_y        = 0
+sw_pressed   = False
+is_log_press = False
 
 buzzer.shortBeep()                           # hello! we are open for business
 
 
-# constants (states)
-TIMER_RUNNING  = 0
-TIMER_PAUSED   = 1
-TIMER_FINISHED = 2
+def rotate_display():                        # rotate the screen by 180º
+    global timer_y, set_y
 
-SET_MINUTES    = 0
-SET_SECONDS    = 1
-RUN_MODE       = 2
-MAX_TIME       = 99 * 60 + 59                # maximum time allowed
+    ssd.rotate(2)
+    timer_y = 0
+    set_y   = 64 - 16
 
-# globals
-state              = TIMER_PAUSED
-mode               = RUN_MODE
-default_start_time = 8 * 60                  # default is 8 minutes
-current_time       = default_start_time      # time in seconds
+
+rotate_display()                             # in my case, I do need to rotate the screen
+
+
+def clear_blue():
+    ssd.fill_rect(0, timer_y, 128, 64, 0)
+    ssd.show()
 
 
 def endloop():
     """Timer finished. Make some noise."""
 
     buzzer.doubleBeep()
-    screen.flashyMessage("00:00", 300)
+    end_msg()
 
     return
+
+
+def update_time():
+    global mode, old_time, current_time
+
+    if old_time == current_time:
+        return
+    
+    old_time = current_time
+
+    ms           = get_str_time()
+    str_time     = ms[0] + ":" + ms[1]
+    str_time_len = get_time_len(str_time)
+    x_pos        = (64 - str_time_len) / 2
+
+    if mode == RUN_MODE:
+        ssd.fill(0)
+    else:
+        clear_blue()
+    
+    write_blue.set_textpos(ssd, timer_y, int(x_pos))
+    write_blue.printstring(str_time)
+    ssd.show()
+
+
+def get_time_len(el_stringo):
+    global char_lens
+    len = 0
+
+    for c in el_stringo:
+        len += char_lens[c]
+
+    return len
+
+
+def get_str_time():
+    global current_time
+    
+    seconds = current_time % 60
+    str_sec = str(seconds)
+    
+    if seconds < 10:
+        str_sec = '0' + str_sec
+
+    minutes = int((current_time - seconds) / 60)
+    str_min = str(minutes)
+    
+    if minutes < 10:
+        str_min = '0' + str_min
+    
+    return str_min, str_sec
+
+
+def end_msg():
+    write_blue.set_textpos(ssd, timer_y, 9)
+    write_blue.printstring("00:00")
+    ssd.show()
+    time.sleep(0.5)
+    ssd.fill(0)
+    ssd.show()
+
+
+def clear_yellow():
+    ssd.fill_rect(0, set_y, 128, 16, 0)
+    ssd.show()
+
+
+def set_minutes():
+    clear_yellow()
+    ssd.fill_rect(10, set_y, 46, 16, 1)
+    ssd.show()
+
+
+def set_seconds():
+    clear_yellow()
+    ssd.fill_rect(70, set_y, 46, 16, 1)
+    ssd.show()
 
 
 def seconds_up():
@@ -90,6 +190,98 @@ def minutes_down():
         current_time = 1
 
 
+def manage_mode():
+    global mode
+
+    if mode == SET_MINUTES:
+        mode = SET_SECONDS
+        set_seconds()
+
+    elif mode == SET_SECONDS:
+        mode = RUN_MODE
+        clear_yellow()
+
+    else:
+        mode = SET_MINUTES
+        set_minutes()
+
+
+def manage_cw():
+    global mode
+
+    if mode == SET_MINUTES:
+        minutes_up()
+
+    elif mode == SET_SECONDS:
+        seconds_up()
+
+
+def manage_ccw():
+    global mode
+
+    if mode == SET_MINUTES:
+        minutes_down()
+
+    elif mode == SET_SECONDS:
+        seconds_down()
+
+
+def short_press():
+    global state, mode, current_time
+
+    if state == TIMER_RUNNING:
+        state = TIMER_PAUSED
+
+    elif state == TIMER_PAUSED:
+        if mode == SET_MINUTES or mode == SET_SECONDS:
+            mode = RUN_MODE
+            clear_yellow()
+        
+        state = TIMER_RUNNING
+
+    elif state == TIMER_FINISHED:
+        current_time = default_start_time
+        state = TIMER_PAUSED
+
+
+def long_press():
+    global mode, state, is_log_press
+
+    if state == TIMER_RUNNING:
+        return
+
+    is_log_press = True
+    tim.deinit()
+
+    if mode == SET_MINUTES:
+        mode = SET_SECONDS
+        set_seconds()
+
+    elif mode == SET_SECONDS:
+        mode = RUN_MODE
+        clear_yellow()
+
+    else:
+        mode = SET_MINUTES
+        set_minutes()
+
+    time.sleep_ms(300)
+
+
+def button_callback(t):
+    global sw_pressed
+
+    if sw_pressed == True:
+        long_press()
+
+
+def manage_button():
+    global sw_pressed
+
+    sw_pressed = True
+    tim.init(mode=Timer.ONE_SHOT, period=1000, callback=button_callback)
+
+
 def rotary_changed(change):
     """
     ISR - Interrupt Service Routine for the rotary encoder
@@ -100,52 +292,26 @@ def rotary_changed(change):
         the value to process
     """
 
-    global state, mode, current_time
+    global state, mode, sw_pressed, is_log_press
 
     if change == Rotary.ROT_CW:
-        if mode == SET_MINUTES:
-            minutes_up()
-
-        elif mode == SET_SECONDS:
-            seconds_up()
+        manage_cw()
 
     elif change == Rotary.ROT_CCW:
-        if mode == SET_MINUTES:
-            minutes_down()
+        manage_ccw()
 
-        elif mode == SET_SECONDS:
-            seconds_down()
-
-    elif change == Rotary.SHORT_PRESS:
-        if state == TIMER_RUNNING:
-            state = TIMER_PAUSED
-
-        elif state == TIMER_PAUSED:
-            if mode == SET_MINUTES or mode == SET_SECONDS:
-                mode = RUN_MODE
-                screen.unset_all()
-            state = TIMER_RUNNING
-
-        elif state == TIMER_FINISHED:
-            current_time = default_start_time
-            state = TIMER_PAUSED
-
-    elif change == Rotary.LONG_PRESS:
-        if state == TIMER_RUNNING:
-            return
-
-        if mode == SET_MINUTES:
-            mode = SET_SECONDS
-            screen.set_seconds()
-
-        elif mode == SET_SECONDS:
-            mode = RUN_MODE
-            screen.unset_all()
-
+    elif change == Rotary.SW_PRESS:
+        manage_button()
+    
+    elif change == Rotary.SW_RELEASE:
+        if is_log_press == True:
+            is_log_press = False
         else:
-            mode = SET_MINUTES
-            screen. set_minutes()
+            tim.deinit()
+            is_log_press = False
+            short_press()
 
+        sw_pressed = False
 
 rotary.add_handler(rotary_changed)           # Register ISR
 
@@ -156,16 +322,16 @@ if __name__ == '__main__':
     while True:
         if state == TIMER_RUNNING:
             current_time = current_time - 1
-            time.sleep(0.1875) # meh, calibrated with my phone. accurate enough for a kitchen timer
+            time.sleep(0.9) # meh, calibrated with my phone. accurate enough for a kitchen timer
 
             if current_time <= 0:
                 state = TIMER_FINISHED
 
             else:
-                screen.update_time(current_time)
+                update_time()
 
         elif state == TIMER_PAUSED:
-            screen.update_time(current_time)
+            update_time()
 
         elif state == TIMER_FINISHED:
             endloop()
