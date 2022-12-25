@@ -36,13 +36,15 @@ state              = TIMER_PAUSED            # initial state
 mode               = RUN_MODE                # initial mode
 default_start_time = 5#8 * 60                  # default is 8 minutes
 current_time       = default_start_time      # time in seconds
+old_time           = 0                       # a holder to watch for time changes
+timer_y            = 16                      # default Y position for timer
+set_y              = 0                       # default Y position for setup
+sw_pressed         = False                   # flag for rotary switch pressed
+is_lng_press       = False                   # flag for long press
 
-write_blue   = Writer(ssd, font_big, False)  # init writer for small font
-old_time     = 0                             # a holder to watch for time changes
-timer_y      = 16                            # default Y position for timer
-set_y        = 0                             # default Y position for setup
-sw_pressed   = False                         # flag for rotary switch pressed
-is_lng_press = False                         # flag for long press
+
+# init Writer
+writer   = Writer(ssd, font_big, False)      # init writer for small font
 
 
 def rotate_display():                        # rotate the screen by 180º
@@ -90,8 +92,8 @@ def update_time():
     else:
         clear_blue()
     
-    write_blue.set_textpos(ssd, timer_y, int(x_pos))
-    write_blue.printstring(str_time)
+    writer.set_textpos(ssd, timer_y, int(x_pos))
+    writer.printstring(str_time)
     ssd.show()
 
 
@@ -124,8 +126,8 @@ def get_str_time():
 
 
 def end_msg():
-    write_blue.set_textpos(ssd, timer_y, 9)
-    write_blue.printstring("00:00")
+    writer.set_textpos(ssd, timer_y, 9)
+    writer.printstring("00:00")
     ssd.show()
     time.sleep(0.5)
     ssd.fill(0)
