@@ -13,7 +13,8 @@ import oled.seven_segment_48 as font_big
 ssd     = setup_ssd()                        # Setup SSD [scl = 1, sda = 0, i2c = 0]
 rotary  = Rotary(2, 3, 4)                    # initialize rotary encoder
 buzzer  = BUZZER(15)                         # initialize buzzer
-tim     = Timer(-1)
+tim     = Timer(-1)                          # initialize rotary switch IRQ timer
+
 
 # constants (states)
 TIMER_RUNNING      = const(0)                # [state] timer is running
@@ -25,7 +26,10 @@ SET_SECONDS        = const(1)                # [mode] app is setting seconds
 RUN_MODE           = const(2)                # [mode] app is doing the timing
 MAX_TIME           = const(5999)             # 99 * 60 + 59 maximum time allowed
 
+
+# character lengths for x position center calculation. Font seven_segment_48 is NOT monospaced
 char_lens = { ':': 3, '0': 9, '1': 3, '2': 9, '3': 8, '4': 9, '5': 9, '6': 9, '7': 8, '8': 9, '9': 9 }
+
 
 # globals
 state              = TIMER_PAUSED            # initial state
@@ -34,14 +38,11 @@ default_start_time = 5#8 * 60                  # default is 8 minutes
 current_time       = default_start_time      # time in seconds
 
 write_blue   = Writer(ssd, font_big, False)  # init writer for small font
-old_time     = 0
-r_switching  = False
-timer_y      = 16
-set_y        = 0
-sw_pressed   = False
-is_log_press = False
-
-buzzer.shortBeep()                           # hello! we are open for business
+old_time     = 0                             # a holder to watch for time changes
+timer_y      = 16                            # default Y position for timer
+set_y        = 0                             # default Y position for setup
+sw_pressed   = False                         # flag for rotary switch pressed
+is_lng_press = False                         # flag for long press
 
 
 def rotate_display():                        # rotate the screen by 180º
@@ -51,6 +52,8 @@ def rotate_display():                        # rotate the screen by 180º
     timer_y = 0
     set_y   = 64 - 16
 
+
+buzzer.shortBeep()                           # hello! we are open for business
 
 rotate_display()                             # in my case, I do need to rotate the screen
 
@@ -245,12 +248,12 @@ def short_press():
 
 
 def long_press():
-    global mode, state, is_log_press
+    global mode, state, is_lng_press
 
     if state == TIMER_RUNNING:
         return
 
-    is_log_press = True
+    is_lng_press = True
     tim.deinit()
 
     if mode == SET_MINUTES:
@@ -292,7 +295,7 @@ def rotary_changed(change):
         the value to process
     """
 
-    global state, mode, sw_pressed, is_log_press
+    global state, mode, sw_pressed, is_lng_press
 
     if change == Rotary.ROT_CW:
         manage_cw()
@@ -304,14 +307,15 @@ def rotary_changed(change):
         manage_button()
     
     elif change == Rotary.SW_RELEASE:
-        if is_log_press == True:
-            is_log_press = False
+        if is_lng_press == True:
+            is_lng_press = False
         else:
             tim.deinit()
-            is_log_press = False
+            is_lng_press = False
             short_press()
 
         sw_pressed = False
+
 
 rotary.add_handler(rotary_changed)           # Register ISR
 
@@ -321,8 +325,8 @@ if __name__ == '__main__':
 
     while True:
         if state == TIMER_RUNNING:
-            current_time = current_time - 1
-            time.sleep(0.9) # meh, calibrated with my phone. accurate enough for a kitchen timer
+            current_time -= 1
+            time.sleep(0.9) # meh, calibrated with my phone. accurate enough for a kitchen timer tho
 
             if current_time <= 0:
                 state = TIMER_FINISHED
