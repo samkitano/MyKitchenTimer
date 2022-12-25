@@ -5,7 +5,7 @@ import utime as time
 from oled.config import WIDTH, HEIGHT, setup_ssd
 from oled.writer import Writer
 from micropython import const
-from machine import Timer
+from machine import Timer, ADC
 
 import oled.seven_segment_48 as font_big
 
@@ -14,6 +14,7 @@ ssd     = setup_ssd()                        # Setup SSD [scl = 1, sda = 0, i2c 
 rotary  = Rotary(2, 3, 4)                    # initialize rotary encoder
 buzzer  = BUZZER(15)                         # initialize buzzer
 tim     = Timer(-1)                          # initialize rotary switch IRQ timer
+Vsys    = ADC(29)                            # initialize ADC for Vsys reading
 
 
 # constants (states)
@@ -24,7 +25,13 @@ TIMER_FINISHED     = const(2)                # [state] time has finished
 SET_MINUTES        = const(0)                # [mode] app is setting minutes
 SET_SECONDS        = const(1)                # [mode] app is setting seconds
 RUN_MODE           = const(2)                # [mode] app is doing the timing
+
+
+# constants (fixed values/limits)
 MAX_TIME           = const(5999)             # 99 * 60 + 59 maximum time allowed
+CONV_FACTOR        = (3.3 / (65535)) * 3     # ADC voltage conversion factor
+BATTERY_MAX        = 4.2                     # volts
+BATTERY_MIN        = 3.3                     # volts
 
 
 # character lengths for x position center calculation. Font seven_segment_48 is NOT monospaced
@@ -41,10 +48,14 @@ timer_y            = 16                      # default Y position for timer
 set_y              = 0                       # default Y position for setup
 sw_pressed         = False                   # flag for rotary switch pressed
 is_lng_press       = False                   # flag for long press
+is_usb             = True                    # flag for power supply: True for USB, False for battery
+pwr_scr_line       = 56                      # ssd Y pos power supply indicator
+vsys_reading       = 0                       # Vsys voltage
+battery_percentage = 0                       # battery charge (percentage)
 
 
 # init Writer
-writer   = Writer(ssd, font_big, False)      # init writer for small font
+writer = Writer(ssd, font_big, False)        # init writer for small font
 
 
 def rotate_display():                        # rotate the screen by 180º
@@ -61,7 +72,7 @@ rotate_display()                             # in my case, I do need to rotate t
 
 
 def clear_blue():
-    ssd.fill_rect(0, timer_y, 128, 64, 0)
+    ssd.fill_rect(0, timer_y, 128, set_y, 0)
     ssd.show()
 
 
@@ -135,7 +146,7 @@ def end_msg():
 
 
 def clear_yellow():
-    ssd.fill_rect(0, set_y, 128, 16, 0)
+    ssd.fill_rect(0, set_y, 128, 4, 0)
     ssd.show()
 
 
@@ -319,13 +330,34 @@ def rotary_changed(change):
         sw_pressed = False
 
 
-rotary.add_handler(rotary_changed)           # Register ISR
+def read_voltage():
+    global vsys_reading
+
+    vsys_reading = Vsys.read_u16() * CONV_FACTOR
+
+    return str("{:.1f}".format(vsys_reading)) + "V"
+
+
+def check_pwr():
+    v = read_voltage()
+    
+    if is_usb:
+        txt = "USB: " + v
+        ssd.text(txt, 0, pwr_scr_line)
+        ssd.show()
+    else:
+        pass
+
+
+rotary.add_handler(rotary_changed)           # Register Rotary encoder ISR
 
 
 if __name__ == '__main__':
     """Main loop"""
 
     while True:
+        check_pwr()
+
         if state == TIMER_RUNNING:
             current_time -= 1
             time.sleep(0.9) # meh, calibrated with my phone. accurate enough for a kitchen timer tho
