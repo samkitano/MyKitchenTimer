@@ -18,6 +18,8 @@ tim     = Timer(-1)                          # initialize rotary switch IRQ time
 Vsys    = ADC(29)                            # initialize ADC for Vsys reading
 writer  = Writer(ssd, font_big, False)       # init writer NOT verbose
 screen  = Screen(ssd, writer, rotate = True) # set rotate to False if you don't need to rotate screen
+pwr_in  = ADC(26)                            # init ADC for Vin (battery) measurement
+
 
 # constants (states)
 TIMER_RUNNING      = const(0)                # [state] timer is running
@@ -43,7 +45,6 @@ current_time       = default_start_time      # time in seconds
 old_time           = 0                       # a holder to watch for time changes
 sw_pressed         = False                   # flag for rotary switch pressed
 is_lng_press       = False                   # flag for long press
-is_usb             = True                    # flag for power supply: True for USB, False for battery
 battery_percentage = 0                       # battery charge (percentage)
 
 
@@ -59,6 +60,7 @@ def endloop():
 
 def update_time():
     """Update the time on screen"""
+
     global mode, old_time, current_time
 
     if old_time == current_time:
@@ -185,7 +187,7 @@ def long_press():
         return
 
     is_lng_press = True
-    
+
     tim.deinit()
 
     if mode == SET_MINUTES:
@@ -212,10 +214,11 @@ def button_callback(t):
 
 def manage_button():
     """Manage a Rotary switch press"""
+
     global sw_pressed
 
     sw_pressed = True
-    
+
     tim.init(mode = Timer.ONE_SHOT, period = 1000, callback = button_callback)
 
 
@@ -256,19 +259,27 @@ def read_voltage():
     Read supplied voltage
     """
 
-    vsys_reading = Vsys.read_u16() * CONV_FACTOR
-
-    return str("{:.1f}".format(vsys_reading))
+    return Vsys.read_u16() * CONV_FACTOR
 
 
 def check_pwr():
     """
     Check income pwr supply
-    TODO: check if is usb
     """
-    v = read_voltage()
 
-    screen.print_voltage(v, is_usb = True)
+    adc0  = pwr_in.read_u16() * CONV_FACTOR
+    adc29 = Vsys.read_u16() * CONV_FACTOR
+
+    if adc29 > 4.7:
+        usb  = True
+        vlts = adc29
+        chrg = 0
+    else:
+        usb  = False
+        vlts = adc0
+        chrg = int(((adc0 - BATTERY_MIN)) / (BATTERY_MAX - BATTERY_MIN) * 100)
+
+    screen.print_voltage(str("{:.1f}".format(vlts)), usb, chrg)
 
 
 rotary.add_handler(rotary_changed)           # Register Rotary encoder ISR

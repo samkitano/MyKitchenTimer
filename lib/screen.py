@@ -112,8 +112,10 @@ class Screen:
             txt = "BAT: " + v + "V"
 
             if percentile > 0:
-                txt += " (" + percentile + "%)"
-
+                txt += " (" + str("{:d}".format(percentile)) + "%)"
+        
+        #self.clear_aux()
+        self.ssd.fill_rect(0, self.set_y, 128, 16, 0)
         self.ssd.text(txt, 0, self.pwr_scr_line)
         self.ssd.show()
 
