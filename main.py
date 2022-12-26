@@ -1,14 +1,15 @@
-from oled.config import WIDTH, HEIGHT, setup_ssd
 from oled.writer import Writer
+from oled.config import *
+
 from rotary import Rotary
 from buzzer import BUZZER
 from screen import Screen
 
-from machine import Timer, ADC
 from micropython import const
-from utime import sleep_ms
+from utime       import sleep_ms
+from machine     import Timer, ADC
 
-import oled.seven_segment_48 as font_big
+import oled.seven_segment_48 as font
 
 # init classes
 ssd     = setup_ssd()                        # Setup SSD [scl = 1, sda = 0, i2c = 0]
@@ -16,36 +17,29 @@ rotary  = Rotary(2, 3, 4)                    # initialize rotary encoder
 buzzer  = BUZZER(15)                         # initialize buzzer
 tim     = Timer(-1)                          # initialize rotary switch IRQ timer
 Vsys    = ADC(29)                            # initialize ADC for Vsys reading
-writer  = Writer(ssd, font_big, False)       # init writer NOT verbose
+Vin     = ADC(26)                            # init ADC for Vin (battery) measurement
+writer  = Writer(ssd, font, False)           # init writer NOT verbose
 screen  = Screen(ssd, writer, rotate = True) # set rotate to False if you don't need to rotate screen
-pwr_in  = ADC(26)                            # init ADC for Vin (battery) measurement
 
 
-# constants (states)
-TIMER_RUNNING      = const(0)                # [state] timer is running
-TIMER_PAUSED       = const(1)                # [state] timer is paused
-TIMER_FINISHED     = const(2)                # [state] time has finished
+# states
+TIMER_RUNNING  = const(0)                    # [state] timer is running
+TIMER_PAUSED   = const(1)                    # [state] timer is paused
+TIMER_FINISHED = const(2)                    # [state] time has finished
 
-SET_MINUTES        = const(0)                # [mode] app is setting minutes
-SET_SECONDS        = const(1)                # [mode] app is setting seconds
-RUN_MODE           = const(2)                # [mode] app is doing the timing
+SET_MINUTES    = const(0)                    # [mode] app is setting minutes
+SET_SECONDS    = const(1)                    # [mode] app is setting seconds
+RUN_MODE       = const(2)                    # [mode] app is doing the timing
 
-
-# constants (fixed values/limits)
-MAX_TIME           = const(5999)             # 99 * 60 + 59 maximum time allowed
-CONV_FACTOR        = (3.3 / (65535)) * 3     # ADC voltage conversion factor
-BATTERY_MAX        = 4.2                     # volts
-BATTERY_MIN        = 3.3                     # volts
 
 # globals
-state              = TIMER_PAUSED            # initial state
-mode               = RUN_MODE                # initial mode
-default_start_time = 5#8 * 60                  # default is 8 minutes
-current_time       = default_start_time      # time in seconds
-old_time           = 0                       # a holder to watch for time changes
-sw_pressed         = False                   # flag for rotary switch pressed
-is_lng_press       = False                   # flag for long press
-battery_percentage = 0                       # battery charge (percentage)
+state          = TIMER_PAUSED                # initial state
+mode           = RUN_MODE                    # initial mode
+current_time   = DEFAULT_TIMER               # time in seconds
+old_time       = 0                           # a holder to watch for time changes
+sw_pressed     = False                       # flag for rotary switch pressed
+is_lng_press   = False                       # flag for long press
+bat_chrg       = 0                           # battery charge (percentage)
 
 
 buzzer.shortBeep()                           # hello! we are open for business
@@ -61,7 +55,7 @@ def endloop():
 def update_time():
     """Update the time on screen"""
 
-    global mode, old_time, current_time
+    global old_time, current_time
 
     if old_time == current_time:
         return
@@ -94,7 +88,7 @@ def seconds_down():
 
     current_time -= 1
 
-    if current_time < 0:
+    if current_time < 1:
         current_time = 1
 
 
@@ -103,7 +97,7 @@ def minutes_up():
 
     global current_time
 
-    current_time = current_time + 60
+    current_time += 60
 
     if current_time == MAX_TIME:
         current_time = MAX_TIME
@@ -114,7 +108,7 @@ def minutes_down():
 
     global current_time
 
-    current_time = current_time - 60
+    current_time -= 60
 
     if current_time < 0:
         current_time = 1
@@ -131,7 +125,7 @@ def manage_mode():
 
     elif mode == SET_SECONDS:
         mode = RUN_MODE
-        screen.clear_aux()
+        screen.clear_underline()
 
     else:
         mode = SET_MINUTES
@@ -169,12 +163,12 @@ def short_press():
     elif state == TIMER_PAUSED:
         if mode == SET_MINUTES or mode == SET_SECONDS:
             mode = RUN_MODE
-            screen.clear_aux()
+            screen.clear_underline()
 
         state = TIMER_RUNNING
 
     elif state == TIMER_FINISHED:
-        current_time = default_start_time
+        current_time = DEFAULT_TIMER
         state = TIMER_PAUSED
 
 
@@ -196,7 +190,7 @@ def long_press():
 
     elif mode == SET_SECONDS:
         mode = RUN_MODE
-        screen.clear_aux()
+        screen.clear_underline()
 
     else:
         mode = SET_MINUTES
@@ -232,7 +226,7 @@ def rotary_changed(change):
         the value to process
     """
 
-    global state, mode, sw_pressed, is_lng_press
+    global sw_pressed, is_lng_press
 
     if change == Rotary.ROT_CW:
         manage_cw()
@@ -267,7 +261,7 @@ def check_pwr():
     Check income pwr supply
     """
 
-    adc0  = pwr_in.read_u16() * CONV_FACTOR
+    adc0  = Vin.read_u16()  * CONV_FACTOR
     adc29 = Vsys.read_u16() * CONV_FACTOR
 
     if adc29 > 4.7:
@@ -280,6 +274,14 @@ def check_pwr():
         chrg = int(((adc0 - BATTERY_MIN)) / (BATTERY_MAX - BATTERY_MIN) * 100)
 
     screen.print_voltage(str("{:.1f}".format(vlts)), usb, chrg)
+
+    if vlts < BATTERY_MIN:
+        screen.clear_all()
+        ssd.text("Charge Battery!", 0, 0)
+        ssd.show()
+
+        while True:
+            pass
 
 
 rotary.add_handler(rotary_changed)           # Register Rotary encoder ISR
@@ -294,7 +296,7 @@ if __name__ == '__main__':
         if state == TIMER_RUNNING:
             current_time -= 1
             # meh! calibrated with my phone. accurate enough for a kitchen timer tho
-            sleep_ms(900)
+            sleep_ms(934)
 
             if current_time <= 0:
                 state = TIMER_FINISHED

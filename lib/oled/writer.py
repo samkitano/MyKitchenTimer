@@ -24,8 +24,7 @@ and averaging over multiple characters. Proportional fonts were used.
 
 import os
 import framebuf
-from sys import implementation
-from uctypes import bytearray_at, addressof
+
 
 __version__ = (0, 5, 1)
 

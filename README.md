@@ -58,13 +58,13 @@ Battery| PICO
 --------------
 Timer is set to 8 minutes by default. My kind of pasta. Don't judge!
 
-To change the default time, edit line 37 in file `main.py` to a desired value in minutes or seconds x 60. Suppose you want 60 seconds:
+To change the default time, edit line 17 in file `config.py` to a desired value. Suppose you want 120 seconds (2 min):
 
 ```python
 # in minutes
-default_start_time = 1 * 60
+DEFAULT_TIMER = const(2 * 60)
 #in seconds
-default_start_time = 60
+DEFAULT_TIMER = const(120)
 ```
 
 ### Start/Pause

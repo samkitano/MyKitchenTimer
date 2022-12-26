@@ -1,9 +1,41 @@
+from oled.config import WIDTH, BAR_WIDTH, BAR_THICKNESS
 from utime import sleep_ms
 
 class Screen:
-    char_lens = { ':': 3, '0': 9, '1': 3, '2': 9, '3': 8, '4': 9, '5': 9, '6': 9, '7': 8, '8': 9, '9': 9 }
+    """
+    A handy class to unclutter main from display stuff
+    """
+
+    # most used characters lengths in pixels
+    char_lens = {
+        ':': 3,
+        '0': 9,
+        '1': 3,
+        '2': 9,
+        '3': 8,
+        '4': 9,
+        '5': 9,
+        '6': 9,
+        '7': 8,
+        '8': 9,
+        '9': 9
+    }
+
 
     def __init__(self, ssd, writer, rotate = False):
+        """
+        Init class
+
+        Parameters
+        ----------
+        ssd : module
+            instance of ssd class
+        writer : module
+            instance of writer class
+        rotate : bool
+            If true, screen will be rotated by 180º
+        """
+
         self.ssd          = ssd
         self.writer       = writer
         self.timer_y      = 16               # default Y position for timer
@@ -22,7 +54,7 @@ class Screen:
         self.ssd.rotate(2)
 
         self.timer_y      = 0
-        self.set_y        = 64 - 16
+        self.set_y        = (WIDTH // 2) - 16
         self.pwr_scr_line = 56
 
 
@@ -31,7 +63,7 @@ class Screen:
         Clear display main (blue) area
         """
 
-        self.ssd.fill_rect(0, self.timer_y, 128, self.set_y, 0)
+        self.ssd.fill_rect(0, self.timer_y, WIDTH, self.set_y, 0)
         self.ssd.show()
 
 
@@ -43,12 +75,12 @@ class Screen:
         self.ssd.fill(0)
 
 
-    def clear_aux(self):
+    def clear_underline(self):
         """
         Clear auxiliary (yellow) area
         """
 
-        self.ssd.fill_rect(0, self.set_y, 128, 4, 0)
+        self.ssd.fill_rect(0, self.set_y, WIDTH, BAR_THICKNESS, 0)
         self.ssd.show()
 
 
@@ -77,8 +109,8 @@ class Screen:
         Draw a bar under(if rotated)/above minutes in aux display area
         """
 
-        self.clear_aux()
-        self.ssd.fill_rect(14, self.set_y, 48, 4, 1)
+        self.clear_underline()
+        self.ssd.fill_rect(14, self.set_y, BAR_WIDTH, BAR_THICKNESS, 1)
         self.ssd.show()
 
 
@@ -87,8 +119,8 @@ class Screen:
         Draw a bar under(if rotated)/above seconds in aux display area
         """
 
-        self.clear_aux()
-        self.ssd.fill_rect(74, self.set_y, 48, 4, 1)
+        self.clear_underline()
+        self.ssd.fill_rect(74, self.set_y, BAR_WIDTH, BAR_THICKNESS, 1)
         self.ssd.show()
 
 
@@ -112,25 +144,34 @@ class Screen:
             txt = "BAT: " + v + "V"
 
             if percentile > 0:
+                if percentile > 100:
+                    percentile = 100
                 txt += " (" + str("{:d}".format(percentile)) + "%)"
-        
-        #self.clear_aux()
-        self.ssd.fill_rect(0, self.set_y, 128, 16, 0)
+
+        self.__clear_aux()
         self.ssd.text(txt, 0, self.pwr_scr_line)
         self.ssd.show()
 
 
     def end_msg(self):
         """
-        Print a flashy end message when timer is done
+        Print a flashy message when timer is done
         """
 
         self.writer.set_textpos(self.ssd, self.timer_y, 9)
         self.writer.printstring("00:00")
         self.ssd.show()
+
         sleep_ms(500)
-        self.ssd.fill(0)
+
+        self.clear_all()
         self.ssd.show()
+
+
+    def __clear_aux(self):
+        """Clear Auxiliary (yellow) area"""
+
+        self.ssd.fill_rect(0, self.set_y, WIDTH, 16, 0)
 
 
     def __get_str_time(self, el_timo):
