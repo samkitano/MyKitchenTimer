@@ -42,7 +42,7 @@ class Screen:
         self.set_y        = 0                # default Y position for setup
         self.pwr_scr_line = 0                # ssd Y pos power supply indicator
 
-        if rotate == True:
+        if rotate:
             self.rotate()
 
 
@@ -171,7 +171,7 @@ class Screen:
     def __clear_aux(self):
         """Clear Auxiliary (yellow) area"""
 
-        self.ssd.fill_rect(0, self.set_y + BAR_THICKNESS, WIDTH, 16 - BAR_THICKNESS, 0)
+        self.ssd.fill_rect(0, self.pwr_scr_line, WIDTH, 16 - BAR_THICKNESS, 0)
 
 
     def __get_str_time(self, el_timo):
