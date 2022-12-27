@@ -55,7 +55,7 @@ def endloop():
 def update_time():
     """Update the time on screen"""
 
-    global old_time, current_time
+    global old_time
 
     if old_time == current_time:
         return
@@ -202,7 +202,7 @@ def long_press():
 def button_callback(t):
     """ISR for rotary switch timer"""
 
-    if sw_pressed == True:
+    if sw_pressed:
         long_press()
 
 
@@ -238,7 +238,7 @@ def rotary_changed(change):
         manage_button()
 
     elif change == Rotary.SW_RELEASE:
-        if is_lng_press == True:
+        if is_lng_press:
             is_lng_press = False
         else:
             tim.deinit()
@@ -246,14 +246,6 @@ def rotary_changed(change):
             short_press()
 
         sw_pressed = False
-
-
-def read_voltage():
-    """
-    Read supplied voltage
-    """
-
-    return Vsys.read_u16() * CONV_FACTOR
 
 
 def check_pwr():

@@ -171,7 +171,7 @@ class Screen:
     def __clear_aux(self):
         """Clear Auxiliary (yellow) area"""
 
-        self.ssd.fill_rect(0, self.set_y, WIDTH, 16, 0)
+        self.ssd.fill_rect(0, self.set_y + BAR_THICKNESS, WIDTH, 16 - BAR_THICKNESS, 0)
 
 
     def __get_str_time(self, el_timo):
