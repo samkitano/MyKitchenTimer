@@ -2,7 +2,7 @@ from machine import Pin, PWM
 from utime import sleep_ms
 
 
-class BUZZER():
+class BUZZER:
     """
     A handy class to make some sound out of a piezo
 

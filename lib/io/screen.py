@@ -1,4 +1,4 @@
-from oled.config import WIDTH, BAR_WIDTH, BAR_THICKNESS
+from config import WIDTH, BAR_WIDTH, BAR_THICKNESS
 from utime import sleep_ms
 
 class Screen:

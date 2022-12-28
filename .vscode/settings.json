@@ -1,7 +1,15 @@
 {
-  "python.analysis.extraPaths": [
-    "./lib/**",
-    "./lib/screen",
-    "./lib"
-  ]
+    "python.analysis.extraPaths": [
+        "./lib/**",
+        "./lib",
+        ".vscode\\Pico-W-Stub\\stubs",
+    ],
+    "python.linting.enabled": true,
+    "python.analysis.typeshedPaths": [
+        ".vscode\\Pico-W-Stub"
+    ],
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "picowgo.syncFolder": "",
+    "picowgo.openOnStart": true
 }

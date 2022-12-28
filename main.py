@@ -1,36 +1,14 @@
-from oled.writer import Writer
-from oled.config import *
+from config        import *
+from lib.io.screen import Screen
 
-from rotary import Rotary
-from buzzer import BUZZER
-from screen import Screen
-
-from micropython import const
-from utime       import sleep_ms
-from machine     import Timer, ADC
+from micropython   import const
+from utime         import sleep_ms
 
 import oled.seven_segment_48 as font
 
+
 # init classes
-ssd     = setup_ssd()                        # Setup SSD [scl = 1, sda = 0, i2c = 0]
-rotary  = Rotary(2, 3, 4)                    # initialize rotary encoder
-buzzer  = BUZZER(15)                         # initialize buzzer
-tim     = Timer(-1)                          # initialize rotary switch IRQ timer
-Vsys    = ADC(29)                            # initialize ADC for Vsys reading
-Vin     = ADC(26)                            # init ADC for Vin (battery) measurement
-writer  = Writer(ssd, font, False)           # init writer NOT verbose
 screen  = Screen(ssd, writer, rotate = True) # set rotate to False if you don't need to rotate screen
-
-
-# states
-TIMER_RUNNING  = const(0)                    # [state] timer is running
-TIMER_PAUSED   = const(1)                    # [state] timer is paused
-TIMER_FINISHED = const(2)                    # [state] time has finished
-
-SET_MINUTES    = const(0)                    # [mode] app is setting minutes
-SET_SECONDS    = const(1)                    # [mode] app is setting seconds
-RUN_MODE       = const(2)                    # [mode] app is doing the timing
-
 
 # globals
 state          = TIMER_PAUSED                # initial state
