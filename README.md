@@ -4,7 +4,6 @@ A DIY kitchen timer with a Raspberry Pi Pico H to help you stop burning your ric
 
 
 ## BOM
---------------
 
 | Qtty | Item | Pic |
 |------|------|-----|
@@ -20,7 +19,6 @@ A DIY kitchen timer with a Raspberry Pi Pico H to help you stop burning your ric
 | 1  | Switch - any model | ![switch](/img/switch.jpg?raw=true "switch")
 
 ## WIRING
---------------
 
 OLED  | PICO
 ------|------
@@ -28,7 +26,7 @@ scl  | gp 1
 sda  | gp 0
 vcc  | 3v3
 gnd  | gnd
---------------
+
 
 Y-040 | PICO
 ------|------
@@ -37,41 +35,41 @@ dt  | gp 3
 sw  | gp 4
 \+  | 3v3
 gnd  | gnd
---------------
+
 
 Piezo  | PICO
 ------|------
 \+  | gp 15
 \-  | gnd
---------------
+
 
 Battery | *
 ------|------
 \+  | To Switch "a"
 \-  | gnd
---------------
+
 
 Switch | *
 ------|------
 "a"  | Battery +
 "b"  | Vsys (Pico)
---------------
+
 
 1K Resistor | PICO
 ------|------
 any leg  | Vsys
 other leg  | gp 26
---------------
+
 
 2K Resistor | PICO
 ------|------
 any leg  | gp 26
 other leg  | gnd
---------------
+
 
 
 ## USAGE
---------------
+
 Timer is set to 8 minutes by default. My kind of pasta. Don't judge!
 
 To change the default time, edit line 17 in file `config.py` to a desired value. Suppose you want 120 seconds (2 min):
