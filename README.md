@@ -12,14 +12,12 @@ A DIY kitchen timer with a Raspberry Pi Pico H to help you stop burning your ric
 | 1 | OLED display SSD1306 (128 x 64) | ![SSD1306](/img/oled.jpg?raw=true "SSD1306")
 | 1 | Rotary encoder KY-040 | ![KY-040](/img/rotary.jpg?raw=true "KY-040")
 | 1 | Piezoelectric buzzer 5V | ![Piezo](/img/piezo.jpg?raw=true "Piezo")
-| 1 | AA triple battery holder | ![Battery Holder](/img/holder.jpg?raw=true "Battery Holder")
-| 3 | AA Battery (4.5V)* | ![Battery](/img/aa.jpg?raw=true "Battery")
-
-\* probably to be upgraded to chargeable 18650 in the future. Or not.
-
-Alternatively, the device can be powered with an off-the-shelf 5V power bank directly to the pico's micro-usb port.
-
-Switch and box: I will probably never. Still handier than pulling off a phone timer.
+| 1    | 18650 battery holder | ![18650 Battery Holder](/img/18650-single-battery-holder.jpg?raw=true "18650 Battery Holder")
+| 1    | TP4056 charge module |  ![TP4056](/img/18650_chrg_module.jpg?raw=true "TP4056")
+| 1    | 1KΩ resistor | ![1K](/img/1k.jpg?raw=true "1K ohm")
+| 1    | 2KΩ resistor | ![2K](/img/2k.jpg?raw=true "2K ohm")
+| 1    | 18650 battery | ![18650](/img/18650.jpg?raw=true "18650")
+| 1  | Switch - any model | ![switch](/img/switch.jpg?raw=true "switch")
 
 ## WIRING
 --------------
@@ -47,10 +45,28 @@ Piezo  | PICO
 \-  | gnd
 --------------
 
-Battery| PICO
+Battery | *
 ------|------
-\+  | Vsys
+\+  | To Switch "a"
 \-  | gnd
+--------------
+
+Switch | *
+------|------
+"a"  | Battery +
+"b"  | Vsys (Pico)
+--------------
+
+1K Resistor | PICO
+------|------
+any leg  | Vsys
+other leg  | gp 26
+--------------
+
+2K Resistor | PICO
+------|------
+any leg  | gp 26
+other leg  | gnd
 --------------
 
 
@@ -63,7 +79,7 @@ To change the default time, edit line 17 in file `config.py` to a desired value.
 ```python
 # in minutes
 DEFAULT_TIMER = const(2 * 60)
-#in seconds
+# in seconds
 DEFAULT_TIMER = const(120)
 ```
 
