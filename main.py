@@ -1,7 +1,6 @@
 from config        import *
 from lib.io.screen import Screen
 
-from micropython   import const
 from utime         import sleep_ms
 
 import oled.seven_segment_48 as font
